@@ -5,7 +5,7 @@ library(viridis)
 
 #--- joining the csv's of individual moose ----
 
-core_folder <- "D:\\Users\\amand\\Documents\\qgis\\masters_qgis\\rasters\\land_use_home_ranges\\core_area\\vector_report"
+core_folder <- "D:\\Users\\amand\\Documents\\qgis\\masters_qgis\\land_use_home_ranges\\core_area\\vector_report"
 
 # get all the filles and create a list to later put the df in
 core_landuse <- list.files(core_folder, pattern = "\\.csv$", full.names = TRUE)
@@ -28,7 +28,7 @@ write.csv(merged_data,"core_landuse.csv", row.names = FALSE)
 
 
 #--- for full home range ----
-full_folder <- "D:\\Users\\amand\\Documents\\qgis\\masters_qgis\\rasters\\land_use_home_ranges\\full_home_range"
+full_folder <- "D:\\Users\\amand\\Documents\\qgis\\masters_qgis\\land_use_home_ranges\\full_home_range"
 full_landuse <- list.files(full_folder, pattern = "\\.csv$", full.names = TRUE)
 full_data <- list()
 
