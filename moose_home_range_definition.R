@@ -358,24 +358,3 @@ writeVector(akde_result_summer_grid,
             filetype = "GPKG",
             level.UD = 0.5, 
             overwrite=TRUE)
-
-
-
-
-
-
-
-
-
-# second period
-#!!!!!!!!!!!!!!!!!!!!!!!!! This needs to be weighted later
-#subset the dates when in winter habitat
-# first_data <- subset(
-#   moose_collars_gps,
-#   CollarID == "39791" & 
-#     ((LMT > "2018-11-23 00:00:00" & LMT < "2018-12-30 00:00:00") |
-#        (LMT > "2019-01-08" & LMT < "2019-03-19") |
-#        (LMT > "2019-05-17" & LMT < "2019-09-02"))
-# )
-# 
-
