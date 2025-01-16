@@ -17,7 +17,7 @@ counts <- data.frame(
 # calculate the crossing rate
 counts_per_km <- function(df, file_id) {
   df <- merge(df[, c("class", "sum")], counts, by = "class")
-  df$crossings_per_km <- df$count / (df$sum / 1000)
+  df$crossings_per_km <- df$count / (df$sum / 100)
   df$file_id <- file_id
   return(df)
 }
@@ -37,26 +37,26 @@ o_point_one <- data.frame(
   class = c(3, 2, 1, 0),
   sum = c(41038.79, 4756.23, 55282.07, 257470.24),
   count = c(18, 2, 39, 1174),
-  crossings_per_km = c(0.43860942293864, 0.42050111117419, 0.70547285946420, 4.55975028414935),
+  crossings_per_km = c(0.043860942293864, 0.042050111117419, 0.070547285946420, 0.455975028414935),
   file_id = "0.1"
 )
 ch2_data <- data.frame(
   class = c(3, 2, 1, 0),
   sum = c(43131.03, 5315.41, 61934.08, 502292.97),
   count = c(18, 2, 39, 1175),
-  crossings_per_km = c(0.417332950314426, 0.376264483830974, 0.629701773240193, 2.33927223787345),
+  crossings_per_km = c(0.0417332950314426, 0.0376264483830974, 0.0629701773240193, 0.233927223787345),
   file_id = "CH2"
 )
+# 
+# buffer_data <- data.frame(
+#   class = c(3, 2, 1, 0),
+#   sum = c(47645.81, 29136.16, 103616.58, 553862.14),
+#   count = c(18, 2, 39, 1175),
+#   crossings_per_km = c(0.037778768, 0.0068643225, 0.037638764, 0.2121466544),
+#   file_id = "Buf"
+# )
 
-buffer_data <- data.frame(
-  class = c(3, 2, 1, 0),
-  sum = c(47645.81, 29136.16, 103616.58, 553862.14),
-  count = c(18, 2, 39, 1175),
-  crossings_per_km = c(0.37778768, 0.068643225, 0.37638764, 2.121466544),
-  file_id = "Buf"
-)
-
-final_result <- rbind(final_result, o_point_one, ch2_data, buffer_data)
+final_result <- rbind(final_result, o_point_one, ch2_data)
 
 # re-name the id's for more tidy output
 file_id_map <- c(
@@ -71,17 +71,28 @@ file_id_map <- c(
   "_1.csv" = "1",
   "ch.csv" = "Conv1",
   "0.1" = "0.1",
-  "CH2" = "Conv2",
-  "Buf" = "Buf"
+  "CH2" = "Conv2"
+#  "Buf" = "Buf"
 )
 final_result$file_id <- unname(file_id_map[final_result$file_id])
+
+# mean crossing rates per class
+mean_crossings <- final_result %>%
+  group_by(class) %>%
+  summarise(mean_crossings_per_km = mean(crossings_per_km, na.rm = TRUE))
+# class         mean_crossings_per_km
+#      0                0.290 
+#      1                0.0603
+#      2                0.0223
+#      3                0.0414
 
 # make variable for color, keeping in the same theme as other
 coul <- brewer.pal(6, "BuPu")
 
 # visualise in scatter plot
 ggplot(final_result, aes(x = file_id, y = crossings_per_km, shape = as.factor(class))) +
-  geom_point(size = 5, alpha = 0.9, aes(fill = as.factor(class)), color = "black", position = position_jitter(width = 0)) +
+  geom_point(size = 5, alpha = 0.9, aes(fill = as.factor(class)), 
+             color = "black", stroke = 0.1) +
   scale_fill_manual(
     values = c(coul[3], coul[4], coul[5], coul[6]),
     labels = c("Local roads", "Low intensity", "Medium intensity", "High intensity")) +
@@ -89,7 +100,7 @@ ggplot(final_result, aes(x = file_id, y = crossings_per_km, shape = as.factor(cl
                      labels = c("Local roads", "Low intensity", "Medium intensity", "High intensity")) +
   labs(
     x = "Study area size (concave to convex hull)",
-    y = "Crossings per km",
+    y = "Crossings per 100m",
     fill = "Road class",
     shape = "Road class"
   ) +
@@ -111,7 +122,7 @@ ggplot(final_result, aes(x = file_id, y = crossings_per_km, shape = as.factor(cl
     )
   )
 write.csv(final_result,"studyarea_sizes.csv", row.names = FALSE)
-ggsave("crossings_per_km_plot.png", width = 14, height = 8, bg = "lightgrey")
+ggsave("crossings_per_km_plot.png", width = 10, height = 6, bg = "lightgrey")
 
 
 
@@ -242,7 +253,7 @@ ggsave("road_buffers_stacked_merged_classes.png", width = 14, height = 8, bg = "
 #--- statistical tests ----
 
 kruskal_test <- kruskal.test(crossings_per_km ~ as.factor(class), data = final_result)
-dunn_result <- dunn.test(final_result$crossings_per_km, as.factor(final_result$class), method = "bonferroni", list = T)
+dunn_result <- dunn.test(final_result$crossings_per_km, as.factor(final_result$class), method = "holm", list = T)
 dunn_result
 
 # #  evaluate interactions between road classes and study area sizes
@@ -290,18 +301,62 @@ dunn_result <- dunn.test(file$crossings, as.factor(file$new_class), list = T, me
 dunn_result
 
 
-mean_crossings <- aggregate(crossings ~ new_class, data = file, mean)
 
-#visualising the mean crossing rate 
-ggplot(mean_crossings, aes(x = factor(new_class), y = crossings)) +
-  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+#--- visualising mean crossing rates ----
+
+road_names <- c(
+  "Local roads",
+  "Low intensity",
+  "Medium & high intensity "
+)
+
+mean_crossings2 <- aggregate(crossings ~ new_class, data = file, mean)
+
+mean_crossings3 <- final_result %>%
+  filter(file_id == "Conv1") %>%
+  mutate(
+    new_class = case_when(
+      class == 2 ~ 3,  # merge class 2 into class 3
+      TRUE ~ class # keep rest
+    ),
+    method = "Method 3"
+  ) %>%
+  group_by(new_class, method) %>%
+  summarise(value = mean(crossings_per_km, na.rm = TRUE), .groups = "drop") # summarize to get the merged class
+
+plot_data <- bind_rows(
+  mean_crossings %>%
+    mutate(method = "Method 1") %>%
+    rename(value = mean_crossings_per_km),
+  mean_crossings2 %>%
+    mutate(method = "Method 2") %>%
+    rename(value = crossings),
+  mean_crossings3
+)
+
+ggplot(plot_data, aes(x = factor(new_class), y = value, fill = method)) +
+  geom_col(position = "dodge", color = "black", width = 0.7, alpha = 0.9, linewidth = 0.1) +
+  scale_fill_manual(
+    values = c(coul[3], coul[4], coul[5]),
+    labels = c("Method 1 means", "Method 2", "Method 1 just convex")
+  ) + 
+  scale_x_discrete(labels= road_names) +
   labs(
     x = "Traffic class",
-    y = "Mean crossings per 100m"
+    y = "Mean crossings per 100m",
+    fill = "Method"
   ) +
   theme_minimal() +
   theme(
-    plot.title = element_text(hjust = 0.5),
-    axis.text = element_text(size = 12),
-    axis.title = element_text(size = 14)
-  )
+    plot.title = element_text(size = 18, hjust = 0.5, margin = margin(b = 15)),
+    axis.text.x = element_text(size = 14, angle = 20, hjust = 1),
+    axis.text.y = element_text(size = 14),
+    axis.title.x = element_text(size = 16, margin = margin(t = 10)),
+    axis.title.y = element_text(size = 16, margin = margin(r = 15)),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.key.size = unit(0.8, "cm"),
+    legend.key.spacing.y = unit(0.5, 'cm'))
+
+ggsave("crossings_per_km_all_methods.png", width = 10, height = 6, bg = "lightgrey")
+
