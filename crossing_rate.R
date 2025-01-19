@@ -106,6 +106,7 @@ ggplot(final_result, aes(x = file_id, y = crossings_per_km, shape = as.factor(cl
   ) +
   theme_minimal() +
   theme(
+    text = element_text(color = "#303033"),
     axis.text.x = element_text(size = 16, angle = 45),
     axis.text.y = element_text(size = 16),
     axis.title.y = element_text(size = 16, margin = margin(r = 15)),
@@ -122,7 +123,7 @@ ggplot(final_result, aes(x = file_id, y = crossings_per_km, shape = as.factor(cl
     )
   )
 write.csv(final_result,"studyarea_sizes.csv", row.names = FALSE)
-ggsave("crossings_per_km_plot.png", width = 10, height = 6, bg = "lightgrey")
+ggsave("crossings_per_km_plot.png", width = 10, height = 6, bg = "#E1DFDB")
 
 
 
@@ -231,6 +232,7 @@ ggplot(proportion_data_long, aes(x = Buffer_Class, y = Proportion, fill = Code_1
   ) +
   theme_minimal() +
   theme(
+    text = element_text(color = "#303033"),
     axis.text.x = element_text(size = 16),
     axis.text.y = element_text(size = 16),
     axis.title.y = element_text(size = 17, margin = margin(r = 15)),
@@ -246,7 +248,7 @@ ggplot(proportion_data_long, aes(x = Buffer_Class, y = Proportion, fill = Code_1
     )
   )
 
-ggsave("road_buffers_stacked_merged_classes.png", width = 14, height = 8, bg = "lightgrey")
+ggsave("road_buffers_stacked_merged_classes.png", width = 14, height = 8, bg = "#E1DFDB")
   
 
 
@@ -310,35 +312,44 @@ road_names <- c(
   "Medium & high intensity "
 )
 
+mean_crossings <- final_result %>%
+  mutate(
+    new_class = case_when(
+      class == 2 ~ 3,  # merge class 2 into class 3
+      TRUE ~ class # keep rest
+    ),
+    method = "Method 1"
+  ) %>%
+  group_by(new_class, method) %>%
+  summarise(value = mean(crossings_per_km, na.rm = TRUE), .groups = "drop") # summarize to get the merged class
+
 mean_crossings2 <- aggregate(crossings ~ new_class, data = file, mean)
 
-mean_crossings3 <- final_result %>%
+mean_crossings1.2 <- final_result %>%
   filter(file_id == "Conv1") %>%
   mutate(
     new_class = case_when(
       class == 2 ~ 3,  # merge class 2 into class 3
       TRUE ~ class # keep rest
     ),
-    method = "Method 3"
+    method = "Method 1.2"
   ) %>%
   group_by(new_class, method) %>%
   summarise(value = mean(crossings_per_km, na.rm = TRUE), .groups = "drop") # summarize to get the merged class
 
 plot_data <- bind_rows(
-  mean_crossings %>%
-    mutate(method = "Method 1") %>%
-    rename(value = mean_crossings_per_km),
+  mean_crossings,
   mean_crossings2 %>%
     mutate(method = "Method 2") %>%
     rename(value = crossings),
-  mean_crossings3
+  mean_crossings1.2
 )
 
 ggplot(plot_data, aes(x = factor(new_class), y = value, fill = method)) +
   geom_col(position = "dodge", color = "black", width = 0.7, alpha = 0.9, linewidth = 0.1) +
   scale_fill_manual(
     values = c(coul[3], coul[4], coul[5]),
-    labels = c("Method 1 means", "Method 2", "Method 1 just convex")
+    labels = c("Method 1 means", "Method 1 just convex", "Method 2")
   ) + 
   scale_x_discrete(labels= road_names) +
   labs(
@@ -348,6 +359,7 @@ ggplot(plot_data, aes(x = factor(new_class), y = value, fill = method)) +
   ) +
   theme_minimal() +
   theme(
+    text = element_text(color = "#303033"),
     plot.title = element_text(size = 18, hjust = 0.5, margin = margin(b = 15)),
     axis.text.x = element_text(size = 14, angle = 20, hjust = 1),
     axis.text.y = element_text(size = 14),
